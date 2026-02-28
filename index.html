@@ -6,31 +6,26 @@
   <title>MPA - Prueba</title>
 </head>
 <body>
-  <h1>Hola mundo 🚀</h1>
-  <p id="estado">Cargando Firebase...</p>
+  <h1>MPA San José</h1>
+  <h3>Bienvenido pandillista!</h3>
+  <p>Inicia sesion con la cuenta que se te otorgó.</p>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+  <input id="email" type="email" placeholder="Correo" />
+  <input id="password" type="password" placeholder="Contraseña" />
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAGuuvUfUlL6cseKLAvqDvnMTg58oWWRlQ",
-    authDomain: "mpasjverw.firebaseapp.com",
-    projectId: "mpasjverw",
-    storageBucket: "mpasjverw.firebasestorage.app",
-    messagingSenderId: "538954423511",
-    appId: "1:538954423511:web:20995dd17500f2a603e492"
-    };
+  <button id="btnRegister">Registrarme</button>
+  <button id="btnLogin">Iniciar sesión</button>
+  <button id="btnLogout">Cerrar sesión</button>
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+  <p id="status">No autenticado</p>
+  <p id="role">Rol: -</p>
 
-    document.getElementById("estado").textContent =
-      "Firebase conectado ✅ Proyecto: " + firebaseConfig.projectId;
+  <section id="adminPanel" style="display: none;">
+    <h2>Panel Admin</h2>
+    <p>Solo visible para administradores.</p>
+  </section>
 
-    console.log({ app, auth, db });
-  </script>
+  <script type="module" src="./js/main.js"></script>
+
 </body>
 </html>

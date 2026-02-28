@@ -20,7 +20,7 @@ const btnLogout = $("btnLogout");
 btnRegister?.addEventListener("click", async () => {
   try {
     await registerWithEmail(emailEl.value, passwordEl.value);
-    alert("Usuario creado");
+    alert("Cuenta creada. Ya puedes iniciar sesión.");
   } catch (err) {
     alert(err.message);
   }

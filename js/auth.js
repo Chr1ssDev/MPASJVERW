@@ -1,5 +1,6 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
@@ -16,6 +17,7 @@ import { auth, db } from "./firebase-config.js";
 
 const ADMIN_DOMAIN = "mpa.ver";
 const MEMBER_DOMAIN = "mpa.sjv";
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -30,6 +32,28 @@ function getDomain(email) {
 function isAllowedDomain(email) {
   const domain = getDomain(email);
   return domain === ADMIN_DOMAIN || domain === MEMBER_DOMAIN;
+}
+
+export function validateRegistrationEmail(email) {
+  const cleanEmail = normalizeEmail(email);
+  const domain = getDomain(cleanEmail);
+
+  if (!EMAIL_REGEX.test(cleanEmail)) {
+    return { ok: false, message: "Ingresa un correo válido" };
+  }
+
+  if (domain === ADMIN_DOMAIN) {
+    return {
+      ok: false,
+      message: "Ese tipo de correo no está permitido para registrarse. Tal vez quisiste usar @mpa.sjv",
+    };
+  }
+
+  if (domain !== MEMBER_DOMAIN) {
+    return { ok: false, message: "Solo se permite registro con correos @mpa.sjv" };
+  }
+
+  return { ok: true, cleanEmail };
 }
 
 async function syncMemberProfile(user) {
@@ -73,18 +97,22 @@ async function ensureAdminAuthorized(user) {
 }
 
 export async function registerWithEmail(email, password) {
-  const cleanEmail = normalizeEmail(email);
-  const domain = getDomain(cleanEmail);
-
-  if (domain === ADMIN_DOMAIN) {
-    throw new Error("Ese tipo de correo no está permitido para registrarse. Tal vez quisiste usar @mpa.sjv");
+  const validation = validateRegistrationEmail(email);
+  if (!validation.ok) {
+    throw new Error(validation.message);
   }
 
-  if (domain !== MEMBER_DOMAIN) {
-    throw new Error("Solo se permite registro con correos @mpa.sjv");
-  }
+  const cleanEmail = validation.cleanEmail;
 
   const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+
+  // Capa defensiva extra: si por cualquier motivo el correo no cumple,
+  // eliminamos de inmediato la cuenta recién creada.
+  const createdDomain = getDomain(cred.user.email || "");
+  if (createdDomain !== MEMBER_DOMAIN) {
+    await deleteUser(cred.user);
+    throw new Error("Registro cancelado: correo no permitido");
+  }
 
   await setDoc(
     doc(db, "users", cred.user.uid),

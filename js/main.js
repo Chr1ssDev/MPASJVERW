@@ -42,6 +42,7 @@ subscribeAuth(async (user) => {
   if (statusEl) statusEl.textContent = `Autenticado: ${user.email}`;
 
   const role = await getUserRole(user.uid);
+
   if (roleEl) roleEl.textContent = `Rol: ${role}`;
   if (adminPanelEl) adminPanelEl.style.display = role === "admin" ? "block" : "none";
 });

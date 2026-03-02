@@ -31,18 +31,20 @@ function isAllowedDomain(email) {
   return domain === ADMIN_DOMAIN || domain === USER_DOMAIN;
 }
 
-async function syncUserProfile(user) {
-  if (!user?.uid || !user?.email) return;
+async function ensureUserAuthorized(user) {
+  const snap = await getDoc(doc(db, "users", user.uid));
+  const data = snap.exists() ? snap.data() : null;
 
-  const domain = getDomain(user.email);
-  if (domain !== USER_DOMAIN) return;
+  if (!data || data.role !== "user") {
+    await signOut(auth);
+    throw new Error("Cuenta @mpa.gav no autorizada");
+  }
 
   await setDoc(
     doc(db, "users", user.uid),
     {
       email: normalizeEmail(user.email),
-      domain,
-      role: "user",
+      domain: USER_DOMAIN,
       accountType: "user",
       updatedAt: serverTimestamp(),
     },
@@ -90,7 +92,7 @@ export async function loginWithEmail(email, password) {
   if (domain === ADMIN_DOMAIN) {
     await ensureAdminAuthorized(cred.user);
   } else {
-    await syncUserProfile(cred.user);
+    await ensureUserAuthorized(cred.user);
   }
 
   return cred.user;

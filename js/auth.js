@@ -1,5 +1,4 @@
 import {
-  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
@@ -15,7 +14,7 @@ import {
 import { auth, db } from "./firebase-config.js";
 
 const ADMIN_DOMAIN = "mpa.ver";
-const MEMBER_DOMAIN = "mpa.sjv";
+const USER_DOMAIN = "mpa.gav";
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -29,22 +28,22 @@ function getDomain(email) {
 
 function isAllowedDomain(email) {
   const domain = getDomain(email);
-  return domain === ADMIN_DOMAIN || domain === MEMBER_DOMAIN;
+  return domain === ADMIN_DOMAIN || domain === USER_DOMAIN;
 }
 
-async function syncMemberProfile(user) {
+async function syncUserProfile(user) {
   if (!user?.uid || !user?.email) return;
 
   const domain = getDomain(user.email);
-  if (domain !== MEMBER_DOMAIN) return;
+  if (domain !== USER_DOMAIN) return;
 
   await setDoc(
     doc(db, "users", user.uid),
     {
       email: normalizeEmail(user.email),
       domain,
-      role: "member",
-      accountType: "invited",
+      role: "user",
+      accountType: "user",
       updatedAt: serverTimestamp(),
     },
     { merge: true }
@@ -73,33 +72,9 @@ async function ensureAdminAuthorized(user) {
 }
 
 export async function registerWithEmail(email, password) {
-  const cleanEmail = normalizeEmail(email);
-  const domain = getDomain(cleanEmail);
-
-  if (domain === ADMIN_DOMAIN) {
-    throw new Error("Ese tipo de correo no está permitido para registrarse. Tal vez quisiste usar @mpa.sjv");
-  }
-
-  if (domain !== MEMBER_DOMAIN) {
-    throw new Error("Solo se permite registro con correos @mpa.sjv");
-  }
-
-  const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
-
-  await setDoc(
-    doc(db, "users", cred.user.uid),
-    {
-      email: cleanEmail,
-      domain: MEMBER_DOMAIN,
-      role: "member",
-      accountType: "invited",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
-
-  return cred.user;
+  void email;
+  void password;
+  throw new Error("El registro desde la web está deshabilitado. Tu cuenta se crea manualmente por un administrador.");
 }
 
 export async function loginWithEmail(email, password) {
@@ -107,7 +82,7 @@ export async function loginWithEmail(email, password) {
   const domain = getDomain(cleanEmail);
 
   if (!isAllowedDomain(cleanEmail)) {
-    throw new Error("Solo se permiten correos @mpa.ver o @mpa.sjv");
+    throw new Error("Solo se permiten correos @mpa.ver o @mpa.gav");
   }
 
   const cred = await signInWithEmailAndPassword(auth, cleanEmail, password);
@@ -115,7 +90,7 @@ export async function loginWithEmail(email, password) {
   if (domain === ADMIN_DOMAIN) {
     await ensureAdminAuthorized(cred.user);
   } else {
-    await syncMemberProfile(cred.user);
+    await syncUserProfile(cred.user);
   }
 
   return cred.user;
@@ -131,6 +106,6 @@ export function subscribeAuth(callback) {
 
 export async function getUserRole(uid) {
   const snap = await getDoc(doc(db, "users", uid));
-  if (!snap.exists()) return "member";
-  return snap.data().role || "member";
+  if (!snap.exists()) return "user";
+  return snap.data().role || "user";
 }
